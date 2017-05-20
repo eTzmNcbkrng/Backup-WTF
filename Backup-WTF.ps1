@@ -10,10 +10,15 @@ $Date = Get-Date -UFormat %Y-%m-%d #Date format to use in filename
 
 if ($7Zipcli -eq $null) {
     "7-Zip not found - exiting"
+    "Please download 7-zip from http://www.7-zip.org"
+    "Press any key to exit ..."
+    $x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     break
 }
 if ((Get-Item "$($WarcraftDir.FullName)\Wow.exe" -ErrorAction SilentlyContinue) -eq $null) {
     "WoW.exe not found - exiting"
+    'Please review $WarcraftDir variable in line 5'
+    $x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     break
 }
 
