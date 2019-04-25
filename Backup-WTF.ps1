@@ -2,51 +2,61 @@
 
 #region Script Variables
 $7Zipcli = Get-Item 'C:\Program Files\7-Zip\7z.exe' -ErrorAction SilentlyContinue
-$WarcraftDir = Get-Item 'D:\World of Warcraft' -ErrorAction SilentlyContinue
-$ArchiveLocation = "WTF Backups"
+$WarcraftPath = Get-Item 'D:\World of Warcraft\Retail\_retail_' -ErrorAction SilentlyContinue
+$ArchiveFolder = "Backups"
 $Date = Get-Date -UFormat %Y-%m-%d #Date format to use in filename
 #endregion
+
+function Create-DirStructure {
+	param($Path)
+	if (!(Test-Path "$Path")) {
+		New-Item "$Path" -ItemType Directory
+	}
+}
 
 
 if ($7Zipcli -eq $null) {
     "7-Zip not found - exiting"
-    "Please download 7-zip from http://www.7-zip.org"
-    "Press any key to exit ..."
-    $x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     break
 }
-if ((Get-Item "$($WarcraftDir.FullName)\Wow.exe" -ErrorAction SilentlyContinue) -eq $null) {
+if ((Get-Item "$($WarcraftPath.FullName)\Wow.exe" -ErrorAction SilentlyContinue) -eq $null) {
     "WoW.exe not found - exiting"
-    'Please review $WarcraftDir variable in line 5'
-    $x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     break
 }
 
-$WoWVersion = (Get-Item "$($WarcraftDir.FullName)\Wow.exe").VersionInfo.FileVersion.Split(".") #Full WoW Version
+$WoWVersion = (Get-Item "$($WarcraftPath.FullName)\Wow.exe").VersionInfo.FileVersion.Split(".") #Full WoW Version
 $WoWVersionMajor = $WoWVersion[0]
 $WoWVersionMinor = $WoWVersion[1]
 $WoWVersionPatch = $WoWVersion[2]
 $WoWVersionBuild = $WoWVersion[3]
-$WoWVersionDir = $WoWVersionMajor + "." + $WoWVersionMinor + "." + $WoWVersionPatch
 
-#$WoWVersion.Substring(0,$WoWVersion.LastIndexOf(".")) #WoWVersion excluding Build number
-
-#region Check directory structure exists, create if not
-if (!(Test-Path "$($WarcraftDir.FullName)\$ArchiveLocation")) {
-    New-Item "$($WarcraftDir.FullName)\$ArchiveLocation" -ItemType Directory
-}
-
-if (!(Test-Path "$($WarcraftDir.FullName)\$ArchiveLocation\$WoWVersionDir")){
-    New-Item "$($WarcraftDir.FullName)\$ArchiveLocation\$WoWVersionDir" -ItemType Directory
+#region Expansion Mapping
+ switch ($WoWVersionMajor) {
+	1 {$Expac = "Classic"}
+	2 {$Expac = "BC"}
+	3 {$Expac = "WotLK"}
+	4 {$Expac = "Cata"}
+	5 {$Expac = "MoP"}
+	6 {$Expac = "WoD"}
+	7 {$Expac = "Legion"}
+	8 {$Expac = "BfA"}
+	9 {$Expac = "Tiamat's Revenge"}
 }
 #endregion
 
+$ArchivePath = "$WarcraftPath\$ArchiveFolder"
+Create-DirStructure "$ArchivePath"
 
-$ArchiveFolder = "$($WarcraftDir.FullName)\$ArchiveLocation\$WoWVersionDir"
-$ArchiveFile = "$ArchiveFolder\$($WoWVersionBuild + "-" + $Date).7z"
+$ArchivePath = "$ArchivePath\$Expac"
+Create-DirStructure "$ArchivePath"
+
+$ArchivePath = "$ArchivePath\$WoWVersionMajor.$WoWVersionMinor.$WoWVersionPatch"
+Create-DirStructure "$ArchivePath"
+
+$ArchiveFile = "$ArchivePath\$($WoWVersionBuild + "-" + $Date).7z"
 
 if (!(Test-Path $ArchiveFile)) {
-    & "$7Zipcli" a "$ArchiveFile" "$($WarcraftDir.FullName)\WTF" -r "-x!*.bak" "-x!*.old" "-x!*.md5"  -snh -snl #Symlinks can be archived on Windows (-snh) but not extracted
+    & "$7Zipcli" a "$ArchiveFile" "$($WarcraftPath.FullName)\WTF" -r "-x!*.bak" "-x!*.old" "-x!*.md5"  -snh -snl #Symlinks can be archived on Windows (-snh) but not extracted
 }
 else {
     "WTF Folder already backed up today"
